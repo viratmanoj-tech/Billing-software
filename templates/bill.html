@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BillEase – Bill Summary</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green: #2e7d32; --green-light: #e8f5e9; --green-accent: #43a047;
+      --teal: #00796b; --white: #ffffff; --surface: #f7faf7;
+      --border: #c8e6c9; --text: #1b3a1f; --muted: #5a7a5e;
+      --red: #c62828; --shadow: 0 2px 12px rgba(46,125,50,0.10); --radius: 14px;
+    }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--surface); color: var(--text); min-height: 100vh; }
+    header { background: linear-gradient(135deg, var(--green) 0%, var(--teal) 100%); color: var(--white); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon { width: 38px; height: 38px; background: rgba(255,255,255,0.18); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .brand-name { font-size: 1.35rem; font-weight: 700; }
+    .brand-tagline { font-size: 0.72rem; opacity: 0.75; }
+    main { max-width: 820px; margin: 36px auto; padding: 0 16px 60px; }
+    .action-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 10px; font-size: 0.92rem; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: background 0.18s, transform 0.1s; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: linear-gradient(135deg, var(--green) 0%, var(--green-accent) 100%); color: var(--white); box-shadow: 0 3px 10px rgba(46,125,50,0.22); }
+    .btn-secondary { background: var(--green-light); color: var(--green); border: 1.5px solid var(--border); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
+    .btn-ghost:hover { background: var(--green-light); color: var(--green); }
+    .bill-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 4px 24px rgba(46,125,50,0.12); overflow: hidden; margin-bottom: 22px; }
+    .receipt-header { background: linear-gradient(135deg, var(--green) 0%, var(--teal) 100%); color: var(--white); padding: 28px 32px 24px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
+    .receipt-shop-name { font-size: 1.55rem; font-weight: 800; margin-bottom: 2px; }
+    .receipt-shop-sub { font-size: 0.82rem; opacity: 0.8; }
+    .receipt-meta { text-align: right; }
+    .bill-number { font-size: 1.05rem; font-weight: 700; }
+    .bill-date { font-size: 0.82rem; opacity: 0.8; margin-top: 3px; }
+    .perforation { height: 18px; background: repeating-linear-gradient(90deg, transparent 0, transparent 10px, var(--border) 10px, var(--border) 12px); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); opacity: 0.5; }
+    .customer-strip { padding: 18px 32px; background: var(--green-light); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border); }
+    .customer-info { display: flex; align-items: center; gap: 12px; }
+    .customer-avatar { width: 42px; height: 42px; background: var(--green); color: var(--white); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 700; }
+    .customer-name { font-size: 1.05rem; font-weight: 700; color: var(--green); }
+    .customer-phone { font-size: 0.82rem; color: var(--muted); margin-top: 1px; }
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; background: var(--green); color: var(--white); font-size: 0.78rem; font-weight: 700; padding: 5px 13px; border-radius: 20px; }
+    .table-wrap { overflow-x: auto; padding: 0 32px; }
+    @media (max-width: 560px) { .table-wrap { padding: 0 16px; } }
+    table { width: 100%; border-collapse: collapse; margin: 22px 0; font-size: 0.92rem; }
+    thead tr { background: var(--green); color: var(--white); }
+    thead th { padding: 12px 14px; font-weight: 600; font-size: 0.80rem; letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap; }
+    thead th:first-child { border-radius: 8px 0 0 8px; }
+    thead th:last-child { border-radius: 0 8px 8px 0; }
+    tbody tr { border-bottom: 1px solid var(--green-light); transition: background 0.12s; }
+    tbody tr:hover { background: var(--green-light); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: 12px 14px; vertical-align: middle; color: var(--text); }
+    .item-num { width: 28px; height: 28px; background: var(--green-light); color: var(--green); border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; }
+    .product-name { font-weight: 600; }
+    .gst-chip { display: inline-block; background: var(--green-light); color: var(--green); font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border); }
+    td.right, th.right { text-align: right; }
+    td.center, th.center { text-align: center; }
+    .amount { font-weight: 600; }
+    .gst-amount { color: var(--teal); font-weight: 600; }
+    .total-amount { font-weight: 700; color: var(--green); }
+    .bill-summary { padding: 18px 32px 24px; border-top: 2px dashed var(--border); display: flex; justify-content: flex-end; }
+    .summary-box { width: 100%; max-width: 320px; }
+    .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 0.92rem; border-bottom: 1px solid var(--green-light); }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-label { color: var(--muted); font-weight: 500; }
+    .summary-value { font-weight: 600; }
+    .summary-total-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; background: linear-gradient(135deg, var(--green) 0%, var(--teal) 100%); color: var(--white); border-radius: 10px; margin-top: 12px; }
+    .summary-total-label { font-size: 0.85rem; font-weight: 600; opacity: 0.9; }
+    .summary-total-value { font-size: 1.45rem; font-weight: 800; }
+    .thank-you { background: var(--green-light); border-top: 1px solid var(--border); padding: 16px 32px; text-align: center; font-size: 0.88rem; color: var(--green); font-weight: 500; }
+    .gst-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 24px; margin-bottom: 16px; }
+    .gst-card-title { font-size: 0.82rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+    .gst-slab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+    .gst-slab { background: var(--green-light); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; text-align: center; }
+    .gst-slab-pct { font-size: 1.2rem; font-weight: 800; color: var(--green); }
+    .gst-slab-label { font-size: 0.70rem; color: var(--muted); margin-top: 2px; }
+    .gst-slab-val { font-size: 0.88rem; font-weight: 700; color: var(--teal); margin-top: 4px; }
+    footer { text-align: center; font-size: 0.78rem; color: var(--muted); padding: 20px; border-top: 1px solid var(--border); }
+    @media print { header, .action-row, .gst-card, footer { display: none !important; } body { background: white; } main { margin: 0; padding: 0; max-width: 100%; } .bill-card { box-shadow: none; border: none; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">🛒</div>
+    <div>
+      <div class="brand-name">BillEase</div>
+      <div class="brand-tagline">Grocery Billing System</div>
+    </div>
+  </div>
+  <a href="/" style="color:#fff; font-size:0.85rem; text-decoration:none; opacity:0.85;">← New Bill</a>
+</header>
+
+<main>
+
+  <div class="action-row">
+    <a href="/" class="btn btn-secondary">← New Bill</a>
+    <button class="btn btn-primary" onclick="window.print()">🖨️ Print Bill</button>
+    <button class="btn btn-ghost">📋 All Bills</button>
+  </div>
+
+  <div class="bill-card">
+
+    <div class="receipt-header">
+      <div>
+        <div class="receipt-shop-name">🛒 FreshMart Grocers</div>
+        <div class="receipt-shop-sub">GST Reg. No: 29ABCDE1234F1Z5</div>
+        <div class="receipt-shop-sub" style="margin-top:3px;">123, Market Street, Chennai – 600001</div>
+      </div>
+      <div class="receipt-meta">
+        <div class="bill-number">BILL # {{ bill_id }}</div>
+        <div class="bill-date">{{ current_date }}</div>
+        <div style="margin-top:8px;">
+          <span style="background:rgba(255,255,255,0.18); font-size:0.78rem; padding:4px 10px; border-radius:20px;">✅ GST Compliant</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="perforation"></div>
+
+    <div class="customer-strip">
+      <div class="customer-info">
+        <div class="customer-avatar">{{ customer_name[0] | upper }}</div>
+        <div>
+          <div class="customer-name">{{ customer_name }}</div>
+          <div class="customer-phone">{% if phone %}📞 {{ phone }}{% else %}—{% endif %}</div>
+        </div>
+      </div>
+      <div class="status-badge">✓ PAID</div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="center">#</th>
+            <th>Product</th>
+            <th class="center">Qty</th>
+            <th class="right">Unit Price</th>
+            <th class="center">GST</th>
+            <th class="right">GST Amt</th>
+            <th class="right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td class="center"><span class="item-num">{{ loop.index }}</span></td>
+            <td><div class="product-name">{{ item.product }}</div></td>
+            <td class="center">{{ item.qty }}</td>
+            <td class="right amount">₹{{ item.price }}</td>
+            <td class="center"><span class="gst-chip">{{ item.gst_percent }}%</span></td>
+            <td class="right gst-amount">₹{{ item.gst_amount }}</td>
+            <td class="right total-amount">₹{{ item.total }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bill-summary">
+      <div class="summary-box">
+        <div class="summary-row">
+          <span class="summary-label">Subtotal ({{ items|length }} items)</span>
+          <span class="summary-value">₹{{ subtotal }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">CGST</span>
+          <span class="summary-value" style="color:var(--teal);">₹{{ (gst_total / 2) | round(2) }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">SGST</span>
+          <span class="summary-value" style="color:var(--teal);">₹{{ (gst_total / 2) | round(2) }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Total GST</span>
+          <span class="summary-value" style="color:var(--teal);">₹{{ gst_total }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Discount</span>
+          <span class="summary-value" style="color:var(--red);">— ₹0.00</span>
+        </div>
+        <div class="summary-total-row">
+          <div class="summary-total-label">GRAND TOTAL</div>
+          <div class="summary-total-value">₹{{ grand_total }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="thank-you">
+      🙏 Thank you for shopping at <strong>FreshMart Grocers</strong>! &nbsp;|&nbsp; Come again • Have a great day!
+    </div>
+
+  </div>
+
+  <div class="gst-card">
+    <div class="gst-card-title">🏷️ GST Slab Breakdown</div>
+    <div class="gst-slab-grid">
+      <div class="gst-slab">
+        <div class="gst-slab-pct">0%</div>
+        <div class="gst-slab-label">Exempt Goods</div>
+        <div class="gst-slab-val">₹{{ gst_summary[0] }}</div>
+      </div>
+      <div class="gst-slab">
+        <div class="gst-slab-pct">5%</div>
+        <div class="gst-slab-label">GST @ 5%</div>
+        <div class="gst-slab-val">₹{{ gst_summary[5] }}</div>
+      </div>
+      <div class="gst-slab">
+        <div class="gst-slab-pct">12%</div>
+        <div class="gst-slab-label">GST @ 12%</div>
+        <div class="gst-slab-val">₹{{ gst_summary[12] }}</div>
+      </div>
+      <div class="gst-slab">
+        <div class="gst-slab-pct">18%</div>
+        <div class="gst-slab-label">GST @ 18%</div>
+        <div class="gst-slab-val">₹{{ gst_summary[18] }}</div>
+      </div>
+      <div class="gst-slab">
+        <div class="gst-slab-pct">28%</div>
+        <div class="gst-slab-label">GST @ 28%</div>
+        <div class="gst-slab-val">₹{{ gst_summary[28] }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-row">
+    <a href="/" class="btn btn-secondary">← New Bill</a>
+    <button class="btn btn-primary" onclick="window.print()">🖨️ Print Bill</button>
+  </div>
+
+</main>
+
+<footer>
+  BillEase &copy; 2025 &nbsp;•&nbsp; Grocery Billing Software &nbsp;•&nbsp; Built with Flask &amp; SQLite
+</footer>
+
+</body>
+</html>

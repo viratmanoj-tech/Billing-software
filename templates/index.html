@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BillEase – Grocery Billing</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green: #2e7d32; --green-light: #e8f5e9; --green-accent: #43a047;
+      --teal: #00796b; --white: #ffffff; --surface: #f7faf7;
+      --border: #c8e6c9; --text: #1b3a1f; --muted: #5a7a5e;
+      --shadow: 0 2px 12px rgba(46,125,50,0.10); --radius: 14px;
+    }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--surface); color: var(--text); min-height: 100vh; }
+    header { background: linear-gradient(135deg, var(--green) 0%, var(--teal) 100%); color: var(--white); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; box-shadow: 0 2px 8px rgba(0,0,0,0.18); position: sticky; top: 0; z-index: 100; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon { width: 38px; height: 38px; background: rgba(255,255,255,0.18); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .brand-name { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.3px; }
+    .brand-tagline { font-size: 0.72rem; opacity: 0.75; letter-spacing: 0.5px; }
+    .header-meta { font-size: 0.82rem; opacity: 0.82; text-align: right; }
+    main { max-width: 980px; margin: 36px auto; padding: 0 16px 48px; }
+    .page-title { font-size: 1.55rem; font-weight: 700; color: var(--green); margin-bottom: 4px; }
+    .page-subtitle { font-size: 0.88rem; color: var(--muted); margin-bottom: 28px; }
+    .card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); padding: 28px 30px; margin-bottom: 22px; }
+    .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; padding-bottom: 14px; border-bottom: 1.5px solid var(--green-light); }
+    .card-header-icon { width: 36px; height: 36px; background: var(--green-light); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .card-header-title { font-size: 1.05rem; font-weight: 600; color: var(--green); }
+    .card-header-sub { font-size: 0.78rem; color: var(--muted); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 22px; }
+    @media (max-width: 580px) { .form-grid { grid-template-columns: 1fr; } }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 0.82rem; font-weight: 600; color: var(--muted); letter-spacing: 0.3px; text-transform: uppercase; }
+    input[type="text"], input[type="number"], input[type="tel"], select {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+      border-radius: 9px; font-size: 0.92rem; color: var(--text);
+      background: var(--surface); outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s; appearance: none;
+    }
+    input:focus, select:focus { border-color: var(--green-accent); box-shadow: 0 0 0 3px rgba(67,160,71,0.12); background: var(--white); }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a7a5e' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+    }
+    /* Items Table */
+    .items-table-wrap { overflow-x: auto; }
+    .items-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .items-table thead tr { background: var(--green); color: var(--white); }
+    .items-table thead th { padding: 10px 12px; font-weight: 600; font-size: 0.78rem; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; text-align: left; }
+    .items-table thead th:first-child { border-radius: 8px 0 0 8px; width: 48px; text-align: center; }
+    .items-table thead th:last-child { border-radius: 0 8px 8px 0; }
+    .items-table tbody tr { border-bottom: 1px solid var(--green-light); }
+    .items-table tbody tr:nth-child(even) { background: #fafffe; }
+    .items-table tbody tr:hover { background: #f0faf0; }
+    .items-table tbody td { padding: 5px 8px; vertical-align: middle; }
+    .items-table tbody td:first-child { text-align: center; }
+    .row-num { width: 26px; height: 26px; background: var(--green-light); color: var(--green); border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; }
+    .items-table select, .items-table input { padding: 7px 10px; font-size: 0.88rem; border-radius: 7px; }
+    .items-table .qty-input { width: 72px; text-align: center; }
+    .items-table .gst-select { width: 82px; }
+    .items-table .product-select { min-width: 230px; }
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 26px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; border: none; transition: background 0.18s, transform 0.1s, box-shadow 0.18s; text-decoration: none; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: linear-gradient(135deg, var(--green) 0%, var(--green-accent) 100%); color: var(--white); box-shadow: 0 3px 10px rgba(46,125,50,0.22); }
+    .btn-primary:hover { background: linear-gradient(135deg, #256427 0%, var(--green) 100%); }
+    .btn-secondary { background: var(--green-light); color: var(--green); border: 1.5px solid var(--border); }
+    .btn-secondary:hover { background: #d0ebd0; }
+    .form-actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+    .info-strip { background: var(--green-light); border: 1px solid var(--border); border-radius: 10px; padding: 13px 18px; display: flex; align-items: center; gap: 10px; font-size: 0.87rem; color: var(--green); margin-bottom: 22px; }
+    .gst-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--green-light); color: var(--green); font-size: 0.82rem; font-weight: 600; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); margin-right: 8px; margin-top: 14px; }
+    footer { text-align: center; font-size: 0.78rem; color: var(--muted); padding: 20px; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">🛒</div>
+    <div>
+      <div class="brand-name">BillEase</div>
+      <div class="brand-tagline">Grocery Billing System</div>
+    </div>
+  </div>
+  <div class="header-meta">GST Enabled &nbsp;•&nbsp; SQLite Storage</div>
+</header>
+
+<main>
+  <div class="page-title">New Bill</div>
+  <div class="page-subtitle">Fill in customer details and add up to 50 products to generate a GST bill.</div>
+
+  <div class="info-strip">
+    ℹ️ Fill only the rows you need. Empty rows are automatically skipped when generating the bill.
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-icon">👤</div>
+      <div>
+        <div class="card-header-title">Customer Details</div>
+        <div class="card-header-sub">Basic customer information for the bill</div>
+      </div>
+    </div>
+
+    <form action="/generate_bill" method="POST">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="customer_name">Customer Name</label>
+          <input type="text" id="customer_name" name="customer_name" placeholder="e.g. Ravi Kumar" required />
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" name="phone" placeholder="e.g. 9876543210" />
+        </div>
+      </div>
+
+      <!-- Products Card -->
+      <div class="card" style="margin-top:22px; margin-bottom:0; padding:22px 24px; border-color:#d7eed8;">
+        <div class="card-header">
+          <div class="card-header-icon">📦</div>
+          <div>
+            <div class="card-header-title">Products — Up to 50 Items</div>
+            <div class="card-header-sub">Select product, enter quantity and GST %. Leave unused rows blank.</div>
+          </div>
+        </div>
+
+        <div class="items-table-wrap">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Product Name</th>
+                <th>Qty</th>
+                <th>GST %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for i in range(1, 51) %}
+              <tr>
+                <td><span class="row-num">{{ i }}</span></td>
+                <td>
+                  <select name="product[]" class="product-select">
+                    <option value="">— Select Product —</option>
+                    {% for name in products %}
+                    <option value="{{ name }}">{{ name }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+                <td>
+                  <input type="number" name="quantity[]" class="qty-input" placeholder="1" min="1" value="" />
+                </td>
+                <td>
+                  <select name="gst[]" class="gst-select">
+                    <option value="0">0%</option>
+                    <option value="5" selected>5%</option>
+                    <option value="12">12%</option>
+                    <option value="18">18%</option>
+                    <option value="28">28%</option>
+                  </select>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top:14px;">
+          <span class="gst-badge">✅ GST Applied per item</span>
+          <span class="gst-badge">🇮🇳 GSTIN Ready</span>
+          <span class="gst-badge">📋 50 Item Slots</span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" style="flex:1; min-width:180px;">🧾 Generate Bill</button>
+        <button type="reset" class="btn btn-secondary">↺ Clear All</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Quick stats -->
+  <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:6px;">
+    <div class="card" style="flex:1; min-width:140px; padding:16px 20px; display:flex; align-items:center; gap:12px;">
+      <span style="font-size:1.6rem;">📋</span>
+      <div>
+        <div style="font-size:0.78rem; color:var(--muted); font-weight:600;">TODAY'S BILLS</div>
+        <div style="font-size:1.4rem; font-weight:700; color:var(--green);">{{ today_bills }}</div>
+      </div>
+    </div>
+    <div class="card" style="flex:1; min-width:140px; padding:16px 20px; display:flex; align-items:center; gap:12px;">
+      <span style="font-size:1.6rem;">💰</span>
+      <div>
+        <div style="font-size:0.78rem; color:var(--muted); font-weight:600;">TODAY'S REVENUE</div>
+        <div style="font-size:1.4rem; font-weight:700; color:var(--green);">₹{{ today_revenue }}</div>
+      </div>
+    </div>
+    <div class="card" style="flex:1; min-width:140px; padding:16px 20px; display:flex; align-items:center; gap:12px;">
+      <span style="font-size:1.6rem;">🏷️</span>
+      <div>
+        <div style="font-size:0.78rem; color:var(--muted); font-weight:600;">GST COLLECTED</div>
+        <div style="font-size:1.4rem; font-weight:700; color:var(--green);">₹{{ today_gst }}</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  BillEase &copy; 2025 &nbsp;•&nbsp; Grocery Billing Software &nbsp;•&nbsp; Built with Flask &amp; SQLite
+</footer>
+
+</body>
+</html>
